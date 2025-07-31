@@ -312,8 +312,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;        // Alternate Function Push-Pull
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;  // 50 MHz
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-}
-
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
   /* USER CODE END MX_GPIO_Init_2 */
