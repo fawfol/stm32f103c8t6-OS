@@ -307,3 +307,282 @@ Peripheral drivers have been meticulously implemented for the SD card (utilizing
 The foundation laid by this custom OS offers numerous avenues for future enhancements and expansion. More sophisticated task scheduling algorithms, such as priority-based cooperative scheduling or a full-fledged preemptive RTOS (like FreeRTOS, if resource overhead can be managed), could be explored to enhance real-time determinism. For audio, integrating support for more advanced file formats (e.g., MP3 playback) would necessitate the addition of external audio DACs and dedicated decoding libraries, as the current PWM output has inherent fidelity limitations. Supporting more complex game types would require optimizing graphics routines, potentially leveraging hardware acceleration features of more advanced microcontrollers, or exploring advanced rendering techniques tailored for monochrome displays.
 
 Adding network connectivity (e.g., Ethernet, Wi-Fi) would open possibilities for over-the-air (OTA) firmware updates, remote control, and networked gaming. Implementing a simple command-line interface (CLI) over UART could provide advanced debugging capabilities and system control. Furthermore, integrating comprehensive power management features would be crucial for extending battery life in portable applications, allowing the OS to intelligently manage power states of peripherals and the CPU. The modular architecture established in this design facilitates these future enhancements, allowing for incremental development and adaptation to evolving requirements.
+
+
+
+source : gemini and 
+
+:::
+highintegritysystems.com
+STM32 RTOS | SAFERTOS® for ST Processors - WITTENSTEIN high integrity systems
+Opens in a new window
+pcbway.com
+STM32 Blue Pill — Analyse and Optimise Your RAM and ROM - Technology - PCBWay
+Opens in a new window
+deepbluembedded.com
+STM32 Button Debounce Code Examples [Tutorial] - DeepBlueMbedded
+Opens in a new window
+instructables.com
+STM32CubeMX Button Debounce With Interrupt : 5 Steps - Instructables
+Opens in a new window
+controllerstech.com
+Interface Passive Buzzer with STM32 - ControllersTech
+Opens in a new window
+deepbluembedded.com
+STM32 Buzzer | Piezo Buzzer Example + Tone [Active & Passive] - DeepBlueMbedded
+Opens in a new window
+youtube.com
+STM32 Tutorial #57 - Music Player part 2 - Reading and Parsing WAV files - YouTube
+Opens in a new window
+github.com
+ultraembedded/fat_io_lib: Small footprint, low dependency, C code implementation of a FAT16 & FAT32 driver. - GitHub
+Opens in a new window
+itp.nyu.edu
+Lab: Data Logging With an SD Card Reader using SPI Communication - ITP - NYU
+Opens in a new window
+visualmicro.com
+STM32 Flashing Bootloaders - VisualMicro
+Opens in a new window
+community.st.com
+boot loader - SD card - STMicroelectronics Community
+Opens in a new window
+en.wikipedia.org
+Hardware abstraction - Wikipedia
+Opens in a new window
+en.wikipedia.org
+ARM Cortex-M - Wikipedia
+Opens in a new window
+lenovo.com
+What is a Hardware Abstraction Layer and How Does it Work ...
+Opens in a new window
+circuitdigest.com
+How to use SPI Communication in STM32 Microcontroller ...
+Opens in a new window
+mecrisp-stellaris-folkdoc.sourceforge.io
+STM32F103C8T6, 2 x 64kB flash ? — Mecrisp Stellaris Unofficial 1.0 ...
+Opens in a new window
+blog.smowcode.com
+Best Memory Management in Systems! - Smowcode Blogs
+Opens in a new window
+mcuxpresso.nxp.com
+host_msd_fatfs — MCUXpresso SDK Documentation
+Opens in a new window
+elm-chan.org
+FatFs Module Application Note - Elm-chan.org
+Opens in a new window
+community.st.com
+Transitioning to Embedded Systems Development - STMicroelectronics Community
+Opens in a new window
+github.com
+endurodave/C_Allocator: Fixed Block Memory Allocator in C - GitHub
+Opens in a new window
+github.com
+guywilson/RTScheduler: Real-time scheduler for embedded systems - GitHub
+Opens in a new window
+e2e.ti.com
+CCS/MSP430F6736: SD Card Initialising Sequence - MSP low-power microcontroller forum
+Opens in a new window
+rjhcoding.com
+AVR SD Card Initialization Tutorial Part 1 - RJHcoding.com
+Opens in a new window
+controllerstech.com
+SPI using Registers in STM32 - ControllersTech
+Opens in a new window
+stm32world.com
+STM32 Jump to System Memory Bootloader - Stm32World Wiki
+Opens in a new window
+medium.com
+Relocate Vector Table STM32-M0 to SRAM for IAP Implementation - Medium
+Opens in a new window
+community.st.com
+STM32 Bootloader Vector table relocation problem which is linked with CubeMX version - STMicroelectronics Community
+Opens in a new window
+deepbluembedded.com
+STM32 I2C Tutorial HAL Code Examples Slave & Master - DMA / Interrupt
+Opens in a new window
+deepbluembedded.com
+STM32 SD Card SPI & FatFS [Tutorial + Examples] – DeepBlue
+Opens in a new window
+learnbuildshare.wordpress.com
+STM32F103C8 microcontroller example: using SPI as master (SPI1 ...
+Opens in a new window
+dejazzer.com
+Lecture 12: SPI and SD cards
+Opens in a new window
+st.com
+AN2606 Application note - Introduction to system memory boot mode on STM32 MCUs
+Opens in a new window
+reddit.com
+Possibly daft question: are event loops unpopular, not widely used? : r/embedded - Reddit
+Opens in a new window
+github.com
+spiricom/LEAF: Lightweight Embedded Audio Framework - GitHub
+Opens in a new window
+medium.com
+How to use PWM on STM32? - Medium
+Opens in a new window
+community.st.com
+Graphics suite and SSD1306 OLED, I2C or SPI - STMicroelectronics Community
+Opens in a new window
+instructables.com
+Arduino and the SSD1306 OLED I2C 128x64 Display : 17 Steps - Instructables
+Opens in a new window
+karooza.net
+Going Bare Metal on STM32 - karooza.net
+Opens in a new window
+github.com
+stm32-bootloader/README.md at master - GitHub
+Opens in a new window
+en.wikipedia.org
+Cooperative multitasking - Wikipedia
+Opens in a new window
+stackoverflow.com
+Cooperative Multitasking system - Stack Overflow
+Opens in a new window
+docs.rust-embedded.org
+Portability - The Embedded Rust Book
+Opens in a new window
+microdigisoft.com
+GPIO Registers in the STM32F103 Microcontroller.
+Opens in a new window
+deepbluembedded.com
+STM32 GPIO Registers (Direct Register Access) Fast Pin Control - DeepBlueMbedded
+Opens in a new window
+stm32world.com
+STM32 Music Player - Stm32World Wiki
+Opens in a new window
+github.com
+thaletterb/STM32-SSD1306-128x64-I2C: SSD1306 ... - GitHub
+Opens in a new window
+e2e.ti.com
+How do I set PendSV? - Arm-based microcontrollers forum - TI E2E
+Opens in a new window
+blog.embeddedexpert.io
+Getting Started with STM32F103: I2C Bus Scanner - EmbeddedExpertIO
+Opens in a new window
+controllerstech.com
+STM32 I2C Configuration using Registers - ControllersTech
+Opens in a new window
+klinikarduino.github.io
+Part 3 GPIO Read Button - Klinik Arduino
+Opens in a new window
+deepbluembedded.com
+STM32 GPIO Tutorial – Examples, Registers, GPIO Speed & Locking - DeepBlueMbedded
+Opens in a new window
+zyma.me
+PendSV Allows Simple and Efficient Context Switch on Cortex-M | Zhiyao'a Home Page
+Opens in a new window
+numberanalytics.com
+Mastering HAL in Embedded Systems - Number Analytics
+Opens in a new window
+cnblogs.com
+Cortex-M3 Context Switching - IAmAProgrammer - 博客园
+Opens in a new window
+embeddedrelated.com
+Creating a GPIO HAL and Driver in C - Jacob Beningo - EmbeddedRelated.com
+Opens in a new window
+gameprogrammingpatterns.com
+Event Queue - Game Programming Patterns
+Opens in a new window
+numberanalytics.com
+Mastering Queues in Embedded Systems - Number Analytics
+Opens in a new window
+go.embeddedexpert.io
+STM32 Memory Model and Linker Script - EmbeddedExpertIO
+Opens in a new window
+blog.stratifylabs.dev
+Context Switching on the Cortex-M3 - Stratify Labs
+Opens in a new window
+aticleworld.com
+IAR Linker Script for STM32: Complete Guide (Basic to Advanced) 🛠️ - Aticleworld
+Opens in a new window
+deepbluembedded.com
+STM32 HAL Library Tutorial - DeepBlueMbedded
+Opens in a new window
+github.com
+getoffmyhack/STM32F103-Bare-Metal: Programming the STM32F103C8 micro controller at the "bare metal" register level. - GitHub
+Opens in a new window
+cs.usfca.edu
+Data Driven Programming I
+Opens in a new window
+gamedev.stackexchange.com
+architecture - Game engine and data driven design - Game Development Stack Exchange
+Opens in a new window
+embetronicx.com
+Simple STM32 Bootloader Implementation – Bootloader Tutorial Part 3 - EmbeTronicX
+Opens in a new window
+avrfreaks.net
+Ring Buffer - AVR Freaks
+Opens in a new window
+embetronicx.com
+Simple STM32F103 Bootloader Implementation - EmbeTronicX
+Opens in a new window
+en.wikipedia.org
+Circular buffer - Wikipedia
+Opens in a new window
+developer.arm.com
+Pended SVC - PendSV - Armv8-M Exception Model User Guide
+Opens in a new window
+wimmeralogic.com
+STM32F103 Cortex M3 ARM muC
+Opens in a new window
+avrfreaks.net
+simple context switch (in c) - AVR Freaks
+Opens in a new window
+gamesfromwithin.com
+Data-Oriented Design (Or Why You Might Be Shooting Yourself in The Foot With OOP)
+Opens in a new window
+mcuoneclipse.com
+ARM Cortex-M Interrupts and FreeRTOS: Part 3 - MCU on Eclipse
+Opens in a new window
+stackoverflow.com
+Game engine and data driven design [closed] - Stack Overflow
+Opens in a new window
+deepbluembedded.com
+STM32 PWM Output Example Code (PWM Generation Tutorial) - DeepBlueMbedded
+Opens in a new window
+blog.embeddedexpert.io
+Getting Started with STM32F103: Timer in PWM Mode with DMA - EmbeddedExpertIO
+Opens in a new window
+blog.embeddedexpert.io
+Working with STM32 and Displays: SSD1306 I2C OLED display - EmbeddedExpertIO
+Opens in a new window
+leap.tardate.com
+LEAP#549 Bare Metal C on the Blue Pill
+Opens in a new window
+hsel.co.uk
+STM32F0 Tutorial 2 – SysTick - Harris' Electronics
+Opens in a new window
+github.com
+mehdi-adham/stm32-wav-player-Audio-Signal-PWM-Stereo - GitHub
+Opens in a new window
+scribd.com
+Parsing A WAV File in C - Truelogic Blog - Scribd
+Opens in a new window
+stackoverflow.com
+processing an audio wav file with C - Stack Overflow
+Opens in a new window
+community.st.com
+Custom Signal generation using PWM and DMA - STMicroelectronics Community
+Opens in a new window
+github.com
+afiskon/stm32-ssd1306 - GitHub
+Opens in a new window
+github.com
+This is the bootloader for STM32F103 chips - GitHub
+Opens in a new window
+github.com
+STM32F103-RS485-Bootloader/README.md at master - GitHub
+Opens in a new window
+github.com
+NimaMX/STM32F103-SSD1306: ssd1306 i2c ... - GitHub
+Opens in a new window
+blog.embeddedexpert.io
+STM32 Timers Applications: PWM Output Using DMA ...
+Opens in a new window
+github.com
+0xAA55-rs/PWMAudio: A USB sound card based on ... - GitHub
+Opens in a new window
+github.com
+Matiasus/SSD1306: C library for SSD1306 OLED Driver - GitHub
+Opens in a new window
