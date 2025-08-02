@@ -1,227 +1,211 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2025 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-// Removed: #include "stm32f1xx_hal_spi.h"
-// Removed: #include "stm32f1xx_hal_i2c.h"
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-// PC13 is the onboard LED for the Bluepill board
-// CubeMX usually defines ONBOARD_LED_Pin/Port in main.h
-// Using direct pin/port for minimal includes
-#define LED_PIN    GPIO_PIN_13
-#define LED_PORT   GPIOC
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
+#include "stm32f1xx_hal.h"
 
 /* Private variables ---------------------------------------------------------*/
-// Removed: I2C_HandleTypeDef hi2c1;
-// Removed: SPI_HandleTypeDef hspi1;
+SPI_HandleTypeDef hspi1;
 
-/* USER CODE BEGIN PV */
+/* Pin definitions for Blue Pill */
+#define LED_PIN    GPIO_PIN_13
+#define LED_PORT   GPIOC
 
-/* USER CODE END PV */
+#define SD_CS_PIN  GPIO_PIN_0
+#define SD_CS_PORT GPIOB
 
-/* Private function prototypes -----------------------------------------------*/
+/* SD Commands */
+#define CMD0_GO_IDLE_STATE      0x40
+#define CMD8_SEND_IF_COND       0x48
+#define CMD55_APP_CMD           0x77
+#define ACMD41_APP_OP_COND      0x69
+
+/* Responses */
+#define R1_IDLE_STATE           0x01
+#define R1_OK                   0x00
+
+/* Function prototypes */
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-// Removed: static void MX_I2C1_Init(void);
-// Removed: static void MX_SPI1_Init(void);
-/* USER CODE BEGIN PFP */
+static void MX_SPI1_Init(void);
+void Error_Handler(void);
 
-/* USER CODE END PFP */
+/* Helper functions */
+static void SD_CS_HIGH(void) { HAL_GPIO_WritePin(SD_CS_PORT, SD_CS_PIN, GPIO_PIN_SET); }
+static void SD_CS_LOW(void)  { HAL_GPIO_WritePin(SD_CS_PORT, SD_CS_PIN, GPIO_PIN_RESET); }
 
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
+static uint8_t SPI_TransmitReceive(uint8_t data) {
+    uint8_t rx;
+    HAL_SPI_TransmitReceive(&hspi1, &data, &rx, 1, 100);
+    return rx;
+}
 
-/* USER CODE END 0 */
+static uint8_t SD_SendCmd(uint8_t cmd, uint32_t arg, uint8_t crc) {
+    uint8_t response;
 
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
+    SPI_TransmitReceive(cmd);
+    SPI_TransmitReceive((arg >> 24) & 0xFF);
+    SPI_TransmitReceive((arg >> 16) & 0xFF);
+    SPI_TransmitReceive((arg >> 8) & 0xFF);
+    SPI_TransmitReceive(arg & 0xFF);
+    SPI_TransmitReceive(crc);
+
+    uint16_t timeout = 0xFFFF;
+    do {
+        response = SPI_TransmitReceive(0xFF);
+        timeout--;
+    } while (response == 0xFF && timeout);
+
+    return response;
+}
+
+/* Main ----------------------------------------------------------------------*/
 int main(void)
 {
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_SPI1_Init();
 
-  /* USER CODE BEGIN 1 */
+    /* Blink 3 times to confirm LED works */
+    for(int i = 0; i < 3; i++) {
+        HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET); // ON
+        HAL_Delay(200);
+        HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);   // OFF
+        HAL_Delay(200);
+    }
 
-  /* USER CODE END 1 */
+    /* SD Card Init */
+    uint8_t sd_initialized = 0;
+    uint8_t response;
 
-  /* MCU Configuration--------------------------------------------------------*/
+    /* 80 dummy clocks with CS high */
+    SD_CS_HIGH();
+    for (int i = 0; i < 10; i++) SPI_TransmitReceive(0xFF);
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init(); // Initializes the HAL Library and system clock (SysTick)
+    /* CMD0: Go to Idle */
+    SD_CS_LOW();
+    response = SD_SendCmd(CMD0_GO_IDLE_STATE, 0x00000000, 0x95);
+    SD_CS_HIGH();
 
-  /* USER CODE BEGIN Init */
+    if (response == R1_IDLE_STATE) {
+        /* CMD8: Check voltage */
+        SD_CS_LOW();
+        response = SD_SendCmd(CMD8_SEND_IF_COND, 0x000001AA, 0x87);
+        for(int i = 0; i < 4; i++) SPI_TransmitReceive(0xFF); // discard R7
+        SD_CS_HIGH();
 
-  /* USER CODE END Init */
+        if (response == R1_IDLE_STATE) {
+            /* CMD55 + ACMD41 loop */
+            uint16_t timeout = 5000;
+            do {
+                SD_CS_LOW();
+                SD_SendCmd(CMD55_APP_CMD, 0x00000000, 0x01);
+                SD_CS_HIGH();
 
-  /* Configure the system clock */
-  SystemClock_Config(); // Configures the microcontroller's main clock to 36MHz (HSI + PLL)
+                SD_CS_LOW();
+                response = SD_SendCmd(ACMD41_APP_OP_COND, 0x40000000, 0x01);
+                SD_CS_HIGH();
+                HAL_Delay(1);
+                timeout--;
+            } while (response != R1_OK && timeout);
 
-  /* USER CODE BEGIN SysInit */
+            if (response == R1_OK) sd_initialized = 1;
+        }
+    }
 
-  /* USER CODE END SysInit */
+    /* Blink result */
+    if (sd_initialized) {
+        // Fast blink 10 times
+        for(int i=0; i<10; i++) {
+            HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET);
+            HAL_Delay(50);
+            HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
+            HAL_Delay(50);
+        }
+    } else {
+        // Slow blink forever
+        while (1) {
+            HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET);
+            HAL_Delay(500);
+            HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
+            HAL_Delay(500);
+        }
+    }
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init(); // Initializes only the necessary GPIOs for PC13 LED
-  // Removed: MX_I2C1_Init();
-  // Removed: MX_SPI1_Init();
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
-
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-      // Toggle PC13 LED
-      // PC13 is active-low on Bluepill: GPIO_PIN_RESET (LOW) is ON, GPIO_PIN_SET (HIGH) is OFF
-      HAL_GPIO_TogglePin(LED_PORT, LED_PIN); // This will switch between ON and OFF
-      HAL_Delay(500); // 500ms delay
-
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+    while (1) { }
 }
 
-/**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+/* System Clock */
 void SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2; // HSI (8MHz) is divided by 2
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9; // Then multiplied by 9 (4MHz * 9 = 36MHz)
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+    RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+    RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+    HAL_RCC_OscConfig(&RCC_OscInitStruct);
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK; // System clock = PLL output (36MHz)
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) // Correct flash latency for 36MHz
-  {
-    Error_Handler();
-  }
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+    HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1);
 }
 
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
+/* GPIO Init */
 static void MX_GPIO_Init(void)
 {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  /* USER CODE END MX_GPIO_Init_1 */
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE(); // Enabled for PC13 (LED)
-  // Removed: __HAL_RCC_GPIOA_CLK_ENABLE();
-  // Removed: __HAL_RCC_GPIOB_CLK_ENABLE();
-  // Removed: __HAL_RCC_AFIO_CLK_ENABLE();
+    /* PC13 LED */
+    GPIO_InitStruct.Pin = LED_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(LED_PORT, &GPIO_InitStruct);
 
+    /* PB0 SD CS */
+    GPIO_InitStruct.Pin = SD_CS_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(SD_CS_PORT, &GPIO_InitStruct);
 
-  /*Configure GPIO pin Output Level (PC13 is active low) */
-  HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET); // Set OFF initially (HIGH for active-low LED)
-
-  /*Configure GPIO pins : PC13 (Onboard LED) */
-  GPIO_InitStruct.Pin = LED_PIN;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_PORT, &GPIO_InitStruct);
-
-  // Removed all other GPIO configurations for buttons, SD card, I2C for this minimal test.
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-
-  /* USER CODE END MX_GPIO_Init_2 */
+    /* Default states */
+    HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);   // LED off
+    HAL_GPIO_WritePin(SD_CS_PORT, SD_CS_PIN, GPIO_PIN_SET); // CS high
 }
 
-/* USER CODE BEGIN 4 */
+/* SPI Init */
+static void MX_SPI1_Init(void)
+{
+    __HAL_RCC_SPI1_CLK_ENABLE();
 
-/* USER CODE END 4 */
+    hspi1.Instance = SPI1;
+    hspi1.Init.Mode = SPI_MODE_MASTER;
+    hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+    hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+    hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+    hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+    hspi1.Init.NSS = SPI_NSS_SOFT;
+    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+    hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+    hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+    hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+    hspi1.Init.CRCPolynomial = 10;
+    HAL_SPI_Init(&hspi1);
+}
 
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
 void Error_Handler(void)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq(); // Disable interrupts to prevent further execution
-  while (1)
-  {
-  }
-  /* USER CODE END Error_Handler_Debug */
+    __disable_irq();
+    while (1) { }
 }
-#ifdef USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  * where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
-  /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-  /* USER CODE END 6 */
-}
-#endif /* USE_FULL_ASSERT */
