@@ -38,8 +38,9 @@
 #define BTN_OK     GPIO_PIN_4
 #define BTN_PORT   GPIOA
 
-// --- MODIFIED: Define for the LED pin to use PD0 ---
-
+// PC13 is the onboard LED for the Bluepill board
+#define LED_PIN    GPIO_PIN_13
+#define LED_PORT   GPIOC
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -102,48 +103,24 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 0);
+	  // Read the state of all buttons. If any button is pressed, turn on the LED.
+	  // If all buttons are released, turn off the LED.
+	  if (HAL_GPIO_ReadPin(BTN_PORT, BTN_UP) == GPIO_PIN_RESET ||
+	      HAL_GPIO_ReadPin(BTN_PORT, BTN_DOWN) == GPIO_PIN_RESET ||
+	      HAL_GPIO_ReadPin(BTN_PORT, BTN_LEFT) == GPIO_PIN_RESET ||
+	      HAL_GPIO_ReadPin(BTN_PORT, BTN_RIGHT) == GPIO_PIN_RESET ||
+	      HAL_GPIO_ReadPin(BTN_PORT, BTN_OK) == GPIO_PIN_RESET) {
+	      
+	      // The PC13 LED is active-low, so GPIO_PIN_RESET (LOW) turns it ON.
+	      HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_RESET);
+	  } else {
+	      // If no button is pressed, turn the LED OFF.
+	      // GPIO_PIN_SET (HIGH) turns off an active-low LED.
+	      HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET);
+	  }
 
-	  	if (HAL_GPIO_ReadPin(BTN_PORT, BTN_UP) == GPIO_PIN_RESET) { // Check if button is pressed (active low)
-	  		HAL_Delay(20); // Debounce delay
-	  	    	if (HAL_GPIO_ReadPin(BTN_PORT, BTN_UP) == GPIO_PIN_RESET) {
-	  	    			// confirmed press
-	  	    			HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 1); // Light up LED
-	  	    	}
-	  	}
-
-	  	if (HAL_GPIO_ReadPin(BTN_PORT, BTN_DOWN) == GPIO_PIN_RESET) {
-	      		HAL_Delay(20);
-	      		if (HAL_GPIO_ReadPin(BTN_PORT, BTN_DOWN) == GPIO_PIN_RESET) {
-	         			// confirmed press
-	      				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 1); // Light up LED
-	        		}
-	  	}
-
-	  	if (HAL_GPIO_ReadPin(BTN_PORT, BTN_LEFT) == GPIO_PIN_RESET) {
-	      		HAL_Delay(20);
-	      		if (HAL_GPIO_ReadPin(BTN_PORT, BTN_LEFT) == GPIO_PIN_RESET) {
-	         			// confirmed press
-	      				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 1); // Light up LED
-	        		}
-	  	}
-
-	  	if (HAL_GPIO_ReadPin(BTN_PORT, BTN_RIGHT) == GPIO_PIN_RESET) {
-	      		HAL_Delay(20);
-	      		if (HAL_GPIO_ReadPin(BTN_PORT, BTN_RIGHT) == GPIO_PIN_RESET) {
-	         			// confirmed press
-	      				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 1); // Light up LED
-	        		}
-	  	}
-
-	  	if (HAL_GPIO_ReadPin(BTN_PORT, BTN_OK) == GPIO_PIN_RESET) {
-	      		HAL_Delay(20);
-	      		if (HAL_GPIO_ReadPin(BTN_PORT, BTN_OK) == GPIO_PIN_RESET) {
-	         			// confirmed press
-	      				HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, 1); // Light up LED
-	        		}
-	  	}
-
+	  // A small delay to prevent rapid polling issues, but not so long as to feel unresponsive.
+	  HAL_Delay(10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -167,8 +144,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2; // HSI (8MHz) is divided by 2
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9; // Then multiplied by 9 (4MHz * 9 = 36MHz)
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -178,12 +155,12 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK; // System clock = PLL output (36MHz)
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) // Correct flash latency for 36MHz
   {
     Error_Handler();
   }
@@ -206,21 +183,20 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13|GPIO_PIN_14, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PC13 PC14 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_14;
+  /*Configure GPIO pins : PC13 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 PA2 PA3
-                           PA4 */
+  /*Configure GPIO pins : PA0 PA1 PA2 PA3 PA4 (Buttons) */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3
                           |GPIO_PIN_4;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP; // *** CRITICAL FIX: Buttons need pull-up resistors! ***
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -249,7 +225,7 @@ void Error_Handler(void)
 #ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
+  * where the assert_param error has occurred.
   * @param  file: pointer to the source file name
   * @param  line: assert_param error line source number
   * @retval None
