@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stm32f1xx_hal_spi.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -69,7 +69,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-SPI_HandleTypeDef hspi1; // Handle for SPI1 peripheral
+I2C_HandleTypeDef hi2c1;
+
+SPI_HandleTypeDef hspi1;
 
 /* USER CODE BEGIN PV */
 
@@ -78,13 +80,8 @@ SPI_HandleTypeDef hspi1; // Handle for SPI1 peripheral
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_I2C1_Init(void);
 static void MX_SPI1_Init(void);
-// Helper functions for SD card communication
-static void SD_CS_HIGH(void);
-static void SD_CS_LOW(void);
-static uint8_t SPI_TransmitReceive(uint8_t data);
-static uint8_t SD_SendCmd(uint8_t cmd, uint32_t arg, uint8_t crc);
-static uint8_t SD_ReadR1Response(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -179,7 +176,8 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_SPI1_Init(); // Initialize SPI1 for SD card
+  MX_I2C1_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
   // --- SD Card Initialization Test ---
@@ -303,8 +301,8 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2; // HSI (8MHz) is divided by 2
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9; // Then multiplied by 9 (4MHz * 9 = 36MHz)
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI_DIV2;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -314,15 +312,49 @@ void SystemClock_Config(void)
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK; // System clock = PLL output (36MHz)
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) // Correct flash latency for 36MHz
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
+
+  /* USER CODE BEGIN I2C1_Init 0 */
+
+  /* USER CODE END I2C1_Init 0 */
+
+  /* USER CODE BEGIN I2C1_Init 1 */
+
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.ClockSpeed = 100000;
+  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
+
+  /* USER CODE END I2C1_Init 2 */
+
 }
 
 /**
@@ -332,6 +364,7 @@ void SystemClock_Config(void)
   */
 static void MX_SPI1_Init(void)
 {
+
   /* USER CODE BEGIN SPI1_Init 0 */
 
   /* USER CODE END SPI1_Init 0 */
@@ -339,20 +372,19 @@ static void MX_SPI1_Init(void)
   /* USER CODE BEGIN SPI1_Init 1 */
 
   /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
   hspi1.Instance = SPI1;
-  hspi1.Init.Mode = SPI_MODE_MASTER; // Microcontroller is the master
-  hspi1.Init.Direction = SPI_DIRECTION_2LINES; // Full-duplex communication
-  hspi1.Init.DataSize = SPI_DATASIZE_8BIT; // 8-bit data size for SD card commands/data
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW; // CPOL = 0
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE; // CPHA = 1 (often works, try SPI_PHASE_2EDGE if issues persist)
-                                          // Typically CPOL=0/CPHA=0 or CPOL=1/CPHA=1 for SD cards, but CPOL=0/CPHA=1 observed to work with some
-  hspi1.Init.NSS = SPI_NSS_SOFT; // Software slave select (we control CS manually on PA4)
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256; // Initial low speed for SD card (PCLK2=36MHz / 256 = 140.625kHz)
-                                                             // Can be increased later (e.g., SPI_BAUDRATEPRESCALER_4) for faster transfer after init
-  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB; // Most Significant Bit first
-  hspi1.Init.TIMode = SPI_TIMODE_DISABLE; // Disable TI mode
-  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE; // CRC calculation disabled for now
-  hspi1.Init.CRCPolynomial = 7;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
@@ -376,46 +408,40 @@ static void MX_GPIO_Init(void)
   /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE(); // Enabled for PC13 (LED)
-  __HAL_RCC_GPIOA_CLK_ENABLE(); // Enabled for all buttons and SPI1 pins
-  __HAL_RCC_GPIOB_CLK_ENABLE(); // Enabled for PB0 (SD_CS)
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  // Enable clock for Alternate Function I/O (AFIO)
-  __HAL_RCC_AFIO_CLK_ENABLE();
-  // __HAL_AFIO_REMAP_SPI1_DISABLE(); // SPI1 uses default pins PA4-PA7 by default. No remapping needed for this config.
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(ONBOARD_LED_GPIO_Port, ONBOARD_LED_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pin Output Level (PC13 is active low) */
-  HAL_GPIO_WritePin(LED_PORT, LED_PIN, GPIO_PIN_SET); // Set OFF initially (HIGH for active-low LED)
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_14, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : PC13 (Onboard LED) */
-  GPIO_InitStruct.Pin = LED_PIN;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pins : ONBOARD_LED_Pin PC14 */
+  GPIO_InitStruct.Pin = ONBOARD_LED_Pin|GPIO_PIN_14;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_PORT, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-
-  /*Configure GPIO pins : PA0 PA1 PA2 PA3 PA4 (All Buttons) */
-  GPIO_InitStruct.Pin = BTN_UP|BTN_DOWN|BTN_LEFT|BTN_RIGHT|BTN_OK; // All buttons on GPIOA
+  /*Configure GPIO pins : BTN_UP_Pin BTN_DOWN_Pin BTN_LEFT_Pin BTN_RIGHT_Pin
+                           BTN_OK_Pin */
+  GPIO_InitStruct.Pin = BTN_UP_Pin|BTN_DOWN_Pin|BTN_LEFT_Pin|BTN_RIGHT_Pin
+                          |BTN_OK_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP; // Buttons need pull-up resistors
-  HAL_GPIO_Init(BTN_PORT, &GPIO_InitStruct); // Initialize GPIOA for all buttons
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-
-  /*Configure SPI1 GPIO pins : PA5 (SCK), PA6 (MISO), PA7 (MOSI) - Alternate Function */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP; // Alternate Function Push-Pull for SPI signals
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH; // High speed for SPI
-  GPIO_InitStruct.Pull = GPIO_NOPULL; // No pull-up/down needed for AF pins
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct); // Initialize GPIOA for SPI pins
-
-
-  /*Configure GPIO pin : PB0 (SD Card Chip Select - Manual Control) */
-  GPIO_InitStruct.Pin = SD_CS_PIN; // PB0
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP; // General purpose output for CS
-  GPIO_InitStruct.Pull = GPIO_PULLUP; // Keep CS high by default (inactive)
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(SD_CS_PORT, &GPIO_InitStruct); // Initialize GPIOB for SD_CS pin
+  /*Configure GPIO pin : SD_CS_Pin */
+  GPIO_InitStruct.Pin = SD_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(SD_CS_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -443,7 +469,7 @@ void Error_Handler(void)
 #ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
-  * where the assert_param error has occurred.
+  *         where the assert_param error has occurred.
   * @param  file: pointer to the source file name
   * @param  line: assert_param error line source number
   * @retval None
